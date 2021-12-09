@@ -5,6 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 from scipy.fft import fft
 from scipy import signal
+from io import StringIO
 
 ########## MODELO ##########
 class Modelo:
