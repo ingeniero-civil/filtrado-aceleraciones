@@ -82,11 +82,25 @@ st.title('Filtrado de Señales')
 datosCol, espacioCol, graficosCol = st.columns((3,1,6))
 
 with datosCol:
+    st.info('''App para el filtrado de señales, desde 0.1 Hz hasta la frecuencia deseada de corte.
+    Desarrollado por Javier Cornejo. Para cualquier comentario o sugerencia, pueden contactarme en mis redes [Twitter]
+    (https://twitter.com/JavierCornejoT) | [Instagram] (https://www.instagram.com/javier.cornejot/) | [LinkedIn] 
+    (https://www.linkedin.com/in/jcornejot/).
+    '''
+           )
     st.header('Subir archivo')
     file = st.file_uploader('Archivo en formato CSV',type='csv')
     if file is not None:
         # Leer el archivo subido a la página
-        df = pd.read_csv(file,engine='python',sep=None)
+        # Rutina para ignorar la primera fila si contiene la palabra 'sep'
+        l = StringIO(file.getvalue().decode("utf-8")).readline()
+        
+        if 'sep=' in l:
+            header=1
+        else:
+            header=0
+            
+        df = pd.read_csv(file,engine='python',sep=None,header=header)
 
         # Muestra una lista con las columnas como opciones
         columnas = df.columns
