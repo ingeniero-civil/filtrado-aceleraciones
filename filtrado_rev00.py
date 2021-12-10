@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 from scipy.fft import fft
 from scipy import signal
 from io import StringIO
@@ -75,6 +76,27 @@ class Modelo:
         xFourier, yFourier = self.transformada_fourier(y, self.ts)
         
         return self.graficar_xy(xFourier,yFourier,yaxis_title='Amplitud',xaxis_title='Frecuencia (Hz)')
+    
+    def graficar_espectrograma(self, columna):
+        fig, ax = plt.subplots()
+        fig.set_figheight(1)
+
+        y = df[columna].values
+        y = y - y.mean()
+        f, t, Sxx = signal.spectrogram(y, self.fs)
+        im = ax.pcolormesh(t, f, Sxx, shading='gouraud',cmap='viridis')
+        #fig.colorbar(im,ax=ax)
+
+        ds = df['DS']
+
+        xt = ax.get_xticks()
+        xtl = []
+        for x in xt[:-1]:
+            xtl.append(ds[int(x/self.ts)].strftime('%H:%M:%S'))
+
+        ax.set_xticklabels(xtl,rotation='vertical')
+        
+        return fig
 
 ########## VISTA ##########
 st.set_page_config(layout = 'wide')
@@ -143,3 +165,6 @@ with graficosCol:
         st.subheader('Espectro de Fourier')
         st.plotly_chart(modelo.graficar_espectro(columna),use_container_width=True)
 
+        # Para graficar el espectrograma
+        st.subheader('Espectrograma')
+        st.pyplot(modelo.graficar_espectrograma(columna))
