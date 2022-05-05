@@ -58,6 +58,13 @@ class Modelo:
     def convert_df(self,y,name):
         return pd.Series(y,name=name,index=self.t).to_csv().encode('utf-8')
     
+    @st.cache
+    def get_espectro_df(self, columna):
+        y = df[columna].values
+        y = y - y.mean()
+        xFourier, yFourier = self.transformada_fourier(y, self.ts)
+        return pd.DataFrame([xFourier,yFourier]).T.rename({0:'Frecuencia',1:'Fourier'},axis=1).to_csv(index=False).encode('utf-8')
+    
     def graficar_datos_filtrados(self,columna,fc):
         y = self.filtrar_columna(columna,fc)
         x = df['DS']
@@ -149,6 +156,15 @@ with datosCol:
             label="Descargar datos como CSV",
             data=csv,
             file_name='valores_filtrados.csv',
+            mime='text/csv')
+        
+        # Botón para descargar el espectro de Fourier
+        st.subheader('Descargar Espectro de Fourier')
+        csv_espectro = modelo.get_espectro_df(columna)
+        st.download_button(
+            label="Descargar espectro como CSV",
+            data=csv_espectro,
+            file_name='espectro_fourier.csv',
             mime='text/csv')
         
 with graficosCol:
