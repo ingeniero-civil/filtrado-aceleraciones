@@ -36,14 +36,29 @@ class Modelo:
         y=df[columna].values
         return self.butter_bandpass_filter(y,[0.1,fc],self.fs)
     
-    def graficar_xy(self,x,y,titulo=None,yaxis_title=None,xaxis_title=None):
+    def graficar_xy(self,x,y,titulo=None,yaxis_title=None,xaxis_title=None,actividad=None):
         fig = go.Figure()
         
-        fig.add_trace(go.Scatter(x=x,
-                                 y=y,
-                                 line=dict(width=1)
-                                )
-                     )
+        if actividad is None:
+            fig.add_trace(go.Scatter(x=x,
+                                     y=y,
+                                     line=dict(width=1)
+                                    )
+                         )
+        else:
+            if actividad == 'TODAS':
+                lista_actividades = df['ACTIVIDAD'].unique()
+            else:
+                lista_actividades = [actividad]
+                
+            for act in lista_actividades:
+                mask = (df['ACTIVIDAD'] == act)
+                fig.add_trace(go.Scatter(x=x.where(mask),
+                                         y=y.where(mask),
+                                         line=dict(width=1),
+                                         name = act
+                                        )
+                             )
 
         fig.update_layout(title=titulo,
                           yaxis_title=yaxis_title,
@@ -58,6 +73,18 @@ class Modelo:
     def convert_df(self,y,name):
         return pd.Series(y,name=name,index=self.t).to_csv().encode('utf-8')
     
+    def graficar_datos_filtrados(self,columna,fc,actividad=None):
+        y = pd.Series(self.filtrar_columna(columna,fc))
+        x = df['DS']
+        
+        return self.graficar_xy(x,y,yaxis_title=columna,actividad=actividad)
+    
+    def graficar_columna(self,columna,titulo=None,actividad=None):
+        x = df['DS']
+        y = df[columna]
+        yaxis_title=columna
+        return self.graficar_xy(x,y,titulo,yaxis_title,actividad=actividad)
+    
     @st.cache
     def get_espectro_df(self, columna):
         y = df[columna].values
@@ -65,22 +92,21 @@ class Modelo:
         xFourier, yFourier = self.transformada_fourier(y, self.ts)
         return pd.DataFrame([xFourier,yFourier]).T.rename({0:'Frecuencia',1:'Fourier'},axis=1).to_csv(index=False).encode('utf-8')
     
-    def graficar_datos_filtrados(self,columna,fc):
-        y = self.filtrar_columna(columna,fc)
-        x = df['DS']
-        
-        return self.graficar_xy(x,y,yaxis_title=columna)
-    
-    def graficar_columna(self,columna,titulo=None):
-        x = df['DS']
-        y = df[columna]
-        yaxis_title=columna
-        return self.graficar_xy(x,y,titulo,yaxis_title)
-    
-    def graficar_espectro(self,columna):
-        y = df[columna].values
+    def graficar_espectro(self,columna, actividad=None):
+        if actividad is None:
+            y = df[columna].values
+        else:
+            if actividad == 'TODAS':
+                lista_actividades = df['ACTIVIDAD'].unique()
+            else:
+                lista_actividades = [actividad]
+            mask = df['ACTIVIDAD'].isin(lista_actividades)
+            y = df[columna][mask].values
+        #y = df[columna].values
         y = y - y.mean()
         xFourier, yFourier = self.transformada_fourier(y, self.ts)
+        #xFourier = pd.Series(xFourier)
+        #yFourier = pd.Series(yFourier)
         
         return self.graficar_xy(xFourier,yFourier,yaxis_title='Amplitud',xaxis_title='Frecuencia (Hz)')
     
@@ -169,17 +195,25 @@ with datosCol:
         
 with graficosCol:
     if file is not None:
+        if 'ACTIVIDAD' in df.columns:
+            lista = ['TODAS']
+            lista.extend(list(df['ACTIVIDAD'].unique()))
+            actividad = st.selectbox('Escoge una actividad',lista)
+            
+        else:
+            actividad = None
+            
         # Para graficar los datos sin filtrar
         st.subheader('Datos sin Filtrar')
-        st.plotly_chart(modelo.graficar_columna(columna),use_container_width=True)
+        st.plotly_chart(modelo.graficar_columna(columna, actividad=actividad),use_container_width=True)
         
         # Para graficar los datos filtrados
         st.subheader('Datos Filtrados')
-        st.plotly_chart(modelo.graficar_datos_filtrados(columna,fc),use_container_width=True)
+        st.plotly_chart(modelo.graficar_datos_filtrados(columna,fc, actividad=actividad),use_container_width=True)
 
         # Para graficar el espectro de Fourier
         st.subheader('Espectro de Fourier')
-        st.plotly_chart(modelo.graficar_espectro(columna),use_container_width=True)
+        st.plotly_chart(modelo.graficar_espectro(columna, actividad=actividad),use_container_width=True)
 
         # Para graficar el espectrograma
         st.subheader('Espectrograma')
