@@ -86,8 +86,16 @@ class Modelo:
         return self.graficar_xy(x,y,titulo,yaxis_title,actividad=actividad)
     
     @st.cache
-    def get_espectro_df(self, columna):
-        y = df[columna].values
+    def get_espectro_df(self, columna, actividad = None):
+        if actividad is None:
+            y = df[columna].values
+        else:
+            if actividad == 'TODAS':
+                lista_actividades = df['ACTIVIDAD'].unique()
+            else:
+                lista_actividades = [actividad]
+            mask = df['ACTIVIDAD'].isin(lista_actividades)
+            y = df[columna][mask].values
         y = y - y.mean()
         xFourier, yFourier = self.transformada_fourier(y, self.ts)
         return pd.DataFrame([xFourier,yFourier]).T.rename({0:'Frecuencia',1:'Fourier'},axis=1).to_csv(index=False).encode('utf-8')
@@ -214,6 +222,15 @@ with graficosCol:
         # Para graficar el espectro de Fourier
         st.subheader('Espectro de Fourier')
         st.plotly_chart(modelo.graficar_espectro(columna, actividad=actividad),use_container_width=True)
+        
+        # Botón para descargar el espectro de Fourier
+        st.subheader('Descargar Espectro de Fourier')
+        csv_espectro = modelo.get_espectro_df(columna, actividad = actividad)
+        st.download_button(
+            label="Descargar espectro como CSV",
+            data=csv_espectro,
+            file_name='espectro_fourier.csv',
+            mime='text/csv')
 
         # Para graficar el espectrograma
         st.subheader('Espectrograma')
