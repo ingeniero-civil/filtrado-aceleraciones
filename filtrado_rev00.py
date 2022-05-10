@@ -191,15 +191,7 @@ with datosCol:
             data=csv,
             file_name='valores_filtrados.csv',
             mime='text/csv')
-        
-        # Botón para descargar el espectro de Fourier
-        st.subheader('Descargar Espectro de Fourier')
-        csv_espectro = modelo.get_espectro_df(columna)
-        st.download_button(
-            label="Descargar espectro como CSV",
-            data=csv_espectro,
-            file_name='espectro_fourier.csv',
-            mime='text/csv')
+       
         
 with graficosCol:
     if file is not None:
