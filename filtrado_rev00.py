@@ -212,7 +212,7 @@ with datosCol:
                            max_value = fs/2-0.1,
                            value=[0.0,fs/2-0.1],
                            step = 0.1,
-                           format = '%.1f',
+                           #format = '%.1f',
                           )
         
         # Botón para descargar los datos filtrados
