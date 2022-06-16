@@ -118,6 +118,25 @@ class Modelo:
         
         return self.graficar_xy(xFourier,yFourier,yaxis_title='Amplitud',xaxis_title='Frecuencia (Hz)')
     
+    def graficar_espectro_filtrado(self,columna, fc, actividad=None):
+        if actividad is None:
+            y = df[columna].values
+        else:
+            if actividad == 'TODAS':
+                lista_actividades = df['ACTIVIDAD'].unique()
+            else:
+                lista_actividades = [actividad]
+            mask = df['ACTIVIDAD'].isin(lista_actividades)
+            y = df[columna][mask].values
+        #y = df[columna].values
+        y = y - y.mean()
+        y = self.butter_bandpass_filter(y,[0.1,fc],self.fs)
+        xFourier, yFourier = self.transformada_fourier(y, self.ts)
+        #xFourier = pd.Series(xFourier)
+        #yFourier = pd.Series(yFourier)
+        
+        return self.graficar_xy(xFourier,yFourier,yaxis_title='Amplitud',xaxis_title='Frecuencia (Hz)')
+    
     def graficar_espectrograma(self, columna):
         fig, ax = plt.subplots()
         fig.set_figheight(1)
@@ -214,6 +233,10 @@ with graficosCol:
         # Para graficar el espectro de Fourier
         st.subheader('Espectro de Fourier')
         st.plotly_chart(modelo.graficar_espectro(columna, actividad=actividad),use_container_width=True)
+        
+        # Para graficar el espectro de Fourier de los datos filtrados
+        st.subheader('Espectro de Fourier de Señal Filtrada')
+        st.plotly_chart(modelo.graficar_espectro_filtrado(columna, fc, actividad=actividad),use_container_width=True)
         
         # Botón para descargar el espectro de Fourier
         st.subheader('Descargar Espectro de Fourier')
