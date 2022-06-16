@@ -24,6 +24,13 @@ class Modelo:
         xFourier = np.linspace(0.0, 1.0/(2.0*ts), n//2)
         yFourier = 2.0/n * np.abs(yFourier[0:n//2])
         return xFourier, yFourier
+    
+    def butter_lowpass_filter(self, data, cutoff, fs, order=5):
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        b, a = signal.butter(order, normal_cutoff, btype='low', analog=False)
+        y = signal.filtfilt(b, a, data)
+        return y
 
     def butter_bandpass_filter(self, data, cutoff, fs, order=5):
         nyq = 0.5 * fs
@@ -32,9 +39,13 @@ class Modelo:
         y = signal.filtfilt(b, a, data)
         return y
     
-    def filtrar_columna(self,columna,fc):
+    def filtrar_columna(self,columna,f):
         y=df[columna].values
-        return self.butter_bandpass_filter(y,[0.1,fc],self.fs)
+        fi, fc = f
+        if fi == 0:
+            return self.butter_lowpass_filter(y,fc,self.fs)
+        else:
+            return self.butter_bandpass_filter(y,[fi,fc],self.fs)
     
     def graficar_xy(self,x,y,titulo=None,yaxis_title=None,xaxis_title=None,actividad=None):
         fig = go.Figure()
@@ -130,7 +141,10 @@ class Modelo:
             y = df[columna][mask].values
         #y = df[columna].values
         y = y - y.mean()
-        y = self.butter_bandpass_filter(y,[0.1,fc],self.fs)
+        if fc[0] == 0:
+            y = self.butter_lowpass_filter(y,fc[1],self.fs)
+        else:
+            y = self.butter_bandpass_filter(y,fc,self.fs)
         xFourier, yFourier = self.transformada_fourier(y, self.ts)
         #xFourier = pd.Series(xFourier)
         #yFourier = pd.Series(yFourier)
@@ -194,23 +208,24 @@ with datosCol:
 
         # Slider para seleccionar la frecuencia de corte
         fs = modelo.fs
-        fc = st.slider(label='Escoger la frecuencia de corte',
-                             min_value = 0.1,
-                             max_value = fs/2-0.1,
-                             step = 0.1,
-                             format = '%f',
-                            )
+        fi, fc = st.slider(label='Escoger la frecuencia de corte',
+                           max_value = round(fs/2,0)-0.1,
+                           value=[0.0,round(fs/2,0)-0.1],
+                           step = 0.1,
+                           format = '%.1f',
+                          )
         
         # Botón para descargar los datos filtrados
         st.subheader('Descargar Datos Filtrados')
-        yFiltrado = modelo.filtrar_columna(columna,fc)
+        yFiltrado = modelo.filtrar_columna(columna,[fi,fc])
         csv = modelo.convert_df(yFiltrado,columna)
         st.download_button(
             label="Descargar datos como CSV",
             data=csv,
             file_name='valores_filtrados.csv',
             mime='text/csv')
-       
+        
+        
         
 with graficosCol:
     if file is not None:
@@ -228,7 +243,7 @@ with graficosCol:
         
         # Para graficar los datos filtrados
         st.subheader('Datos Filtrados')
-        st.plotly_chart(modelo.graficar_datos_filtrados(columna,fc, actividad=actividad),use_container_width=True)
+        st.plotly_chart(modelo.graficar_datos_filtrados(columna,[fi,fc], actividad=actividad),use_container_width=True)
 
         # Para graficar el espectro de Fourier
         st.subheader('Espectro de Fourier')
@@ -236,7 +251,7 @@ with graficosCol:
         
         # Para graficar el espectro de Fourier de los datos filtrados
         st.subheader('Espectro de Fourier de Señal Filtrada')
-        st.plotly_chart(modelo.graficar_espectro_filtrado(columna, fc, actividad=actividad),use_container_width=True)
+        st.plotly_chart(modelo.graficar_espectro_filtrado(columna, [fi,fc], actividad=actividad),use_container_width=True)
         
         # Botón para descargar el espectro de Fourier
         st.subheader('Descargar Espectro de Fourier')
