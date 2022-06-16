@@ -196,7 +196,7 @@ with datosCol:
         fs = modelo.fs
         fc = st.slider(label='Escoger la frecuencia de corte',
                              min_value = 0.1,
-                             max_value = fs/2-0.1,
+                             max_value = round(fs/2-0.1,1),
                              step = 0.1,
                              format = '%f',
                             )
